@@ -6,9 +6,223 @@
 <article>
 	<xi:include href="Article_Info.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<para>
-		This is a test paragraph
-	</para>
+		Allocators are part of the CloudStack Adapters. There are following categories of allocators currently supported:</para>
+		<orderedlist>
+			<listitem>
+                            <para>HostAllocators: Allows you to create custom rules to determine which physical host to allocate the guest virtual machines on.</para>
+			</listitem>
+			<listitem>
+                            <para>StoragePoolAllocators: Allows you to create custom rules to determine which storage pool to allocate the guest virtual machines on. </para>
+			</listitem>
+		</orderedlist>
+
+
+	<section id="sect-imp-custom-hostallocator">
+		<title>Implementing a custom HostAllocator</title>
+		<section id="sect-host-alloca-int">
+		<para>HostAllocators are written by extending com.cloud.agent.manager.allocator.HostAllocator interface. The interface defines following two methods.</para>
+		<programlisting>
+			<xi:include parse="text" href="extras/allocatorsample1" xmlns:xi="http://www.w3.org/2001/XInclude" />
+		</programlisting>
+<para>A custom HostAllocator can be written by implementing the ‘allocateTo’ method</para>
+<para>Input Parameters for the method ‘HostAllocator :: allocateTo’:</para>
+	<orderedlist>
+		<listitem><para>com.cloud.vm.VirtualMachineProfile <replaceable>vmProfile</replaceable></para>
+                        <para>VirtualMachineProfile describes one virtual machine. This allows the adapters like
+			Allocators to process the information in the virtual machine and make 
+			determinations on what the virtual machine profile should look like 
+			before it is actually started on the hypervisor.
+			</para>
+			<para>HostAllocators can make use of the following information present in the VirtualMachineProfile:
+			<orderedlist>
+				<listitem>
+                                    <para>The ServiceOffering that specifies configuration like requested CPU speed, RAM etc necessary for the guest VM.</para>
+				</listitem>
+				<listitem>
+                                    <para>The VirtualMachineTemplate, the template to be used to start the VM.</para>
+                                </listitem>
+                        </orderedlist>
+                        </para>
+		</listitem>
+		<listitem><para>com.cloud.deploy.DeploymentPlan</para>
+			<para>DeploymentPlan should specify:</para>
+			<orderedlist>
+				<listitem><para>dataCenterId: The data center the VM should deploy in.</para></listitem>
+				<listitem><para>podId: The pod the VM should deploy in; null if no preference.</para></listitem>
+				<listitem><para>clusterId: The cluster the VM should deploy in; null if no preference.</para></listitem>
+				<listitem><para>poolId: The storage pool the VM should be created in; null if no preference</para></listitem>
+			</orderedlist>
+		</listitem>
+		<listitem><para>com.cloud.host.Host.Type <replaceable>type</replaceable></para>
+			<para>Type of the Host needed for this guest VM. Currently com.cloud.host.Host.Type interface defines
+				the following Host types:
+				<orderedlist>
+					<listitem><para>Storage</para></listitem>
+					<listitem><para>Routing</para></listitem>
+					<listitem><para>SecondaryStorage</para></listitem>
+					<listitem><para>ConsoleProxy</para></listitem>
+					<listitem><para>ExternalFirewall</para></listitem>
+					<listitem><para>ExternalLoadBalancer</para></listitem>
+				</orderedlist>
+			</para>
+		</listitem>
+		<listitem><para>com.cloud.deploy.DeploymentPlanner.ExcludeList <replaceable>avoid</replaceable></para>
+			<para>The ExcludeList  specifies what datacenters, pods, clusters, hosts, 
+			storagePools should not be considered for allocating this guest VM. 
+			HostAllocators should  avoid the hosts that are mentioned in ExcludeList.hostIds
+			<orderedlist>
+				<listitem><para>Set<replaceable>Long</replaceable> dcIds;</para></listitem>
+				<listitem><para>Set<replaceable>Long</replaceable> podIds;</para></listitem>
+				<listitem><para>Set<replaceable>Long</replaceable> clusterIds;</para></listitem>
+				<listitem><para>Set<replaceable>Long</replaceable> hostIds;</para></listitem>
+				<listitem><para>Set<replaceable>Long</replaceable> poolIds;</para></listitem>
+			</orderedlist>
+			</para>
+		</listitem>
+		<listitem>
+			<para>int returnUpTo</para>
+			<para>This specifies return up to that many vailable hosts for this guest VM. To get all possible hosts, set this value to -1</para>
+		</listitem>
+
+	</orderedlist>
+	
+    </section>
+    <section id="sect-ref-hostalloc-imp">
+	<title>Reference HostAllocator Implementation</title>
+		<para>Refer to com.cloud.agent.manager.allocator.impl.FirstFitAllocator</para> that implements the
+			HostAllocator interface. This allocator checks available hosts in the specified datacenter, Pod,
+			Cluster and considering the given Service Offcering requirements.
+		</para>
+		<para>If returnUpTo = 1, this allocator would return the first Host that fits the requirements of 
+			the guest VM
+		</para>
+    </section>
+    <section id="sect-load-custom-hostalloc">
+	<title>Loading a custom HostAllocator</title>
+	<para>Write a custom HostAllocator class, implementing the interface described above.</para>
+	<para>Package the code into a JAR file and make the JAR available in the classpath of the Management Server/tomcat</para>
+	<para>Modify the <filename>components.xml</filename> and <filename>components-premium.xml</filename> files found in <filename>/client/tomcatconf</filename> as follows:</para>
+
+	<para>Search for 'HostAllocator' in these files.</para>
+	<programlisting>
+                        <xi:include parse="text" href="extras/allocatorsample2" xmlns:xi="http://www.w3.org/2001/XInclude" />
+        </programlisting>
+	<para>Replace the FirstFitAllocator with your clas name. Optionally, you can change the name of the adapter as well.</para>
+	<para>Restart the Management Server</para>
+    </section>
+    </section>
+    <section id="sect-custom-storage-alloc">
+	<para>StoragePoolAllocators are written by extending com.cloud.storage.allocator. StoragePoolAllocator interface. </para>
+	<section id="sect-storagepoolalloc-interface">
+		<para>A custom StoragePoolAllocator can be written by implementing the ‘allocateTo’ method
+			<programlisting>
+				<xi:include parse="text" href="extras/allocatorsample3" xmlns:xi="http://www.w3.org/2001/XInclude" />
+			</programlisting>
+		</para>
+		<para>
+			This interface also contains some other methods to support some legacy code. However your custom 
+			allocator can extend the existing com.cloud.storage.allocator. AbstractStoragePoolAllocator. 
+			This class provides default implementation for all the other interface methods.
+		</para>
+		<para>Input Parameters for the method ‘StoragePoolAllocator :: allocateTo’:
+			<orderedlist>
+				<listitem>
+					<para>com.cloud.vm.DiskProfile <replaceable>dskCh</replaceable></para>
+					<para>DiskCharacteristics describes a disk and what functionality is 
+					required from it. It specifies the storage pool tags if any to be 
+					used while searching for a storage pool. </para>
+				</listitem>
+				<listitem>
+					<para>om.cloud.vm.VirtualMachineProfile <replaceable>vmProfile</replaceable></para>
+					<para>VirtualMachineProfile describes one virtual machine. This allows 
+					the adapters like Allocators to process the information in the virtual 
+					machine and make determinations on what the virtual machine profile 
+					should look like before it is actually started on the hypervisor.
+					</para>
+
+					<para>StoragePoolAllocators can make use of the following information present 
+					in the VirtualMachineProfile:
+						<orderedlist>
+							<listitem>
+								<para>The VirtualMachine instance that specifies the properties
+								of the guest VM.
+								</para>
+							</listitem>
+							<listitem>
+								<para>The VirtualMachineTemplate, the template to be used to
+								start the VM.
+								</para>
+							</listitem>
+						</orderedlist>
+					</para>
+				</listitem>
+				<listitem>
+					<para>com.cloud.deploy.DeploymentPlan <replaceable>plan</replaceable></para>
+					<para>
+						DeploymentPlan should specify:
+						<orderedlist>
+							<listitem>
+								<para>dataCenterId: The datacenter the VM should deploy in.</para>
+							</listitem>
+							<listitem>
+								<para>podId: The pod the VM should deploy in; null if no preference</para>
+							</listitem>
+							<listitem>
+								<para>clusterId: The cluster the VM should deploy inl null if no preference.</para>
+							</listitem>
+							<listitem>
+								<para>poolId: The storage pool the VM should be created in; null if no preference.</para>
+							</listitem>
+						</orderedlist>
+
+					</para>
+				</listitem>
+				<listitem>
+					<para>com.cloud.deploy.DeploymentPlanner.ExcludeList <replaceable>avoid</replaceable><para>
+					<para>The ExcludeList specifies what datacenters, pods, clusters, hosts, storagePools should
+					not be considered for allocating this guest VM. StoragePoolAllocators should avoid the pools 
+					that are mentioned in ExcludeList.poolIds:
+						<orderedlist>
+							<listitem>
+								<para>Set<replaceable>long</replaceable> dcIdsl;</para>
+							</listitem>
+							<listitem>
+								<para>Set<replaceable>long</replaceable> podIds;</para>
+							</listitem>
+							<listitem>
+								<para>Set<replaceable>long</replaceable> clusterIds;</para>
+							</listitem>
+							<listitem>
+								<para>Set<replaceable>long</replaceable> hostIds;</para>
+							</listitem>
+							<listitem>
+								<para>Set<replaceable>long</replaceable> poolIds;</para>
+							</listitem>
+						</orderedlist>
+				
+					</para>
+				</listitem>
+				<listitem>
+					<para>int returnUpTo</para>
+					<para>This specifices return up to that many available pools for this guest VM. 
+					To get all possible pools set this value to -1<para>
+				</listitem>
+			</orderedlist>
+		</para>
+	</section>
+	<section id="ref-stopoolall-impl">
+		<title>Reference StoragePoolAllocator Implementation</title>
+		<para>Refer to com.cloud.storage.allocator.FirstFitStoragePoolAllocator that implements
+		the StoragePoolAllocator interface. This allocator checks available pools in the specified datacenter,
+		Pod, Cluster, and considers the given DiskProfile charateristics.</para>
+		<para>If returnUpTo = 1, this allocator would return the first Storage Pool that fits the requirements of
+		the guest vm
+		</para>
+	</section>
+    </section>
+
 	<xi:include href="Revision_History.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<index />
+
 </article>
 
