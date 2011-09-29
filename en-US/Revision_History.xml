@@ -9,11 +9,10 @@
 		<revhistory>
 			<revision>
 				<revnumber>0-0</revnumber>
-				<date>Fri Apr 22 2011</date>
+				<date>Thu Sep 29 2011</date>
 				<author>
-					<firstname>Dude</firstname>
-					<surname>McPants</surname>
-					<email>Dude.McPants@example.com</email>
+					<firstname>CloudStack</firstname>
+					<surname>Community</surname>
 				</author>
 				<revdescription>
 					<simplelist>
